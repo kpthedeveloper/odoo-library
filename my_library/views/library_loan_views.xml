@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="action_library_loan" model="ir.actions.act_window">
+        <field name="name">Book Loans</field>
+        <field name="res_model">library.loan</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first book loan.
+            </p>
+        </field>
+    </record>
+
+    <record id="view_library_loan_list" model="ir.ui.view">
+        <field name="name">library.loan.list</field>
+        <field name="model">library.loan</field>
+        <field name="type">list</field>
+        <field name="arch" type="xml">
+            <list string="Book Loans">
+                <field name="book_id"/>
+                <field name="member_id"/>
+                <field name="loan_date"/>
+                <field name="return_date"/>
+                <field name="state" widget="badge" decoration-success="state == 'returned'" decoration-info="state == 'loaned'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_library_loan_form" model="ir.ui.view">
+        <field name="name">library.loan.form</field>
+        <field name="model">library.loan</field>
+        <field name="type">form</field>
+        <field name="arch" type="xml">
+            <form string="Book Loan">
+                <header>
+                    <button name="action_loan" type="object" string="Mark as Loaned" class="oe_highlight"
+                            invisible="state != 'draft'"/>  <button name="action_return" type="object" string="Mark as Returned" class="oe_highlight"
+                            invisible="state != 'loaned'"/> <button name="action_cancel" type="object" string="Cancel Loan"
+                            invisible="state in ('returned', 'cancelled')"/> <button name="action_set_to_draft" type="object" string="Set to Draft"
+                            invisible="state != 'cancelled'"/> <field name="state" widget="statusbar" statusbar_visible="draft,loaned,returned"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="book_id"/>
+                            <field name="member_id"/>
+                        </group>
+                        <group>
+                            <field name="loan_date"/>
+                            <field name="return_date" invisible="state != 'returned'"/> </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <menuitem id="menu_library_loans"
+              name="Loans"
+              parent="menu_library_root"
+              action="action_library_loan"
+              sequence="30"/>
+
+</odoo>
