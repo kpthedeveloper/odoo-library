@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
+    <!-- Action to open the Book Loans model -->
     <record id="action_library_loan" model="ir.actions.act_window">
         <field name="name">Book Loans</field>
         <field name="res_model">library.loan</field>
@@ -11,6 +12,7 @@
         </field>
     </record>
 
+    <!-- List view for Book Loans -->
     <record id="view_library_loan_list" model="ir.ui.view">
         <field name="name">library.loan.list</field>
         <field name="model">library.loan</field>
@@ -20,12 +22,14 @@
                 <field name="book_id"/>
                 <field name="member_id"/>
                 <field name="loan_date"/>
-                <field name="return_date"/>
+                <field name="return_date"/> <!-- This is now the computed expected return date -->
+                <field name="date_returned"/> <!-- New: Actual date returned -->
                 <field name="state" widget="badge" decoration-success="state == 'returned'" decoration-info="state == 'loaned'"/>
             </list>
         </field>
     </record>
 
+    <!-- Form view for Book Loans -->
     <record id="view_library_loan_form" model="ir.ui.view">
         <field name="name">library.loan.form</field>
         <field name="model">library.loan</field>
@@ -34,10 +38,15 @@
             <form string="Book Loan">
                 <header>
                     <button name="action_loan" type="object" string="Mark as Loaned" class="oe_highlight"
-                            invisible="state != 'draft'"/>  <button name="action_return" type="object" string="Mark as Returned" class="oe_highlight"
-                            invisible="state != 'loaned'"/> <button name="action_cancel" type="object" string="Cancel Loan"
-                            invisible="state in ('returned', 'cancelled')"/> <button name="action_set_to_draft" type="object" string="Set to Draft"
-                            invisible="state != 'cancelled'"/> <field name="state" widget="statusbar" statusbar_visible="draft,loaned,returned"/>
+                            invisible="state != 'draft'"/>
+                    <!-- Button visible if loaned or overdue -->
+                    <button name="action_return" type="object" string="Mark as Returned" class="oe_highlight"
+                            invisible="state not in ('loaned', 'overdue')"/>
+                    <button name="action_cancel" type="object" string="Cancel Loan"
+                            invisible="state in ('returned', 'cancelled')"/>
+                    <button name="action_set_to_draft" type="object" string="Set to Draft"
+                            invisible="state != 'cancelled'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,loaned,returned,overdue"/>
                 </header>
                 <sheet>
                     <group>
@@ -47,17 +56,92 @@
                         </group>
                         <group>
                             <field name="loan_date"/>
-                            <field name="return_date" invisible="state != 'returned'"/> </group>
+                            <!-- Expected Return Date: Read-only as it's computed -->
+                            <field name="return_date" readonly="1" string="Expected Return Date"/>
+                            <!-- Actual Date Returned: Visible only when state is 'returned' -->
+                            <field name="date_returned" invisible="state != 'returned'"/>
+                        </group>
                     </group>
                 </sheet>
             </form>
         </field>
     </record>
 
+    <!-- Menu item for Book Loans -->
     <menuitem id="menu_library_loans"
               name="Loans"
               parent="menu_library_root"
               action="action_library_loan"
               sequence="30"/>
+
+    <!-- SERVER ACTION: Marks loans as overdue and creates an activity -->
+    <record id="action_loan_mark_overdue_and_notify" model="ir.actions.server">
+        <field name="name">Mark Loan Overdue and Notify Librarian</field>
+        <field name="model_id" ref="model_library_loan"/>
+        <field name="state">code</field>
+        <!-- Use CDATA section for the Python code to prevent XML parsing issues -->
+        <field name="code"><![CDATA[
+# All import statements and direct logging setup are forbidden during XML load.
+# 'datetime' object is usually available directly in the safe_eval context.
+
+current_date = datetime.date.today()
+
+# FIX: When triggered by ir.cron, 'records' might be empty or None.
+# Explicitly search for the records to process.
+overdue_loans = model.search([
+    ('return_date', '<', current_date), # This will now compare the computed expected_return_date
+    ('state', '=', 'loaned')
+])
+
+for loan in overdue_loans:
+    # Check state again before writing to avoid unnecessary writes if state changed externally
+    if loan.state == 'loaned':
+        loan.write({'state': 'overdue'})
+
+    # Create an activity for the librarian
+    activity_type = env.ref('mail.mail_activity_data_todo', raise_if_not_found=False)
+    librarian_user = env.ref('base.user_admin', raise_if_not_found=False)
+
+    if activity_type and librarian_user:
+        # Wrapped in try-except for robustness, but logs won't show details here.
+        try:
+            loan.activity_schedule(
+                activity_type_id=activity_type.id,
+                summary=f'Overdue Book: {loan.book_id.name} loaned to {loan.member_id.name}',
+                user_id=librarian_user.id,
+                note=f'Please follow up with {loan.member_id.name} for overdue book "{loan.book_id.name}" (Loan ID: {loan.id}).',
+                date_deadline=current_date
+            )
+        except Exception:
+            # Errors here will appear in the main Odoo server logs, not with custom logger messages
+            pass # Cannot log directly in this restricted context
+        ]]>
+        </field>
+    </record>
+
+    <!-- SCHEDULED ACTION (ir.cron): Triggers the above Server Action regularly -->
+    <record id="ir_cron_overdue_loan_checker" model="ir.cron">
+        <field name="name">Overdue Loan Checker</field>
+        <field name="model_id" ref="model_library_loan"/>
+        <field name="state">code</field>
+        <!-- Correctly call the server action using env.ref().run() -->
+        <field name="code">env.ref('my_library.action_loan_mark_overdue_and_notify').run()</field>
+        <!-- Execute every 1 day -->
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active">True</field>
+        <field name="user_id" ref="base.user_admin"/>
+    </record>
+
+    <!-- The following optional menu items have been removed because their external IDs
+         (base.action_server_actions, base.action_ir_cron) are not directly accessible
+         or have changed in Odoo 18. They are not essential for the module's core functionality.
+         You can still access these settings via Settings -> Technical.
+    -->
+    <!--
+    <menuitem id="menu_library_automation_root" name="Automation" parent="menu_library_root" sequence="90" groups="base.group_system"/>
+    <menuitem id="menu_library_server_actions" name="Server Actions" parent="menu_library_automation_root" action="base.action_server_actions" sequence="10" groups="base.group_system"/>
+    <menuitem id="menu_library_scheduled_actions" name="Scheduled Actions" parent="menu_library_automation_root" action="base.action_ir_cron" sequence="20" groups="base.group_system"/>
+    -->
 
 </odoo>

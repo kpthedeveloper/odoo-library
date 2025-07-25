@@ -3,7 +3,8 @@
     <record id="action_library_member" model="ir.actions.act_window">
         <field name="name">Members</field>
         <field name="res_model">library.member</field>
-        <field name="view_mode">list,form</field> <field name="help" type="html">
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Create your first library member!
             </p>
@@ -44,7 +45,13 @@
                             <field name="membership_tier"/>
                         </group>
                     </group>
-                    </sheet>
+
+                    <notebook>
+                        <page string="Current Loans">
+                            <field name="loan_ids"/>
+                        </page>
+                    </notebook>
+                </sheet>
             </form>
         </field>
     </record>

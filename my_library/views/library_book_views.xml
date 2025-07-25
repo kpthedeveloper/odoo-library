@@ -28,25 +28,34 @@
     </record>
 
     <record id="view_library_book_form" model="ir.ui.view">
-        <field name="name">library.book.form</field>
-        <field name="model">library.book</field>
-        <field name="type">form</field> <field name="arch" type="xml">
-            <form string="Book">
-                <sheet>
-                    <group>
-                        <group>
-                            <field name="name"/>
-                            <field name="author"/>
-                            <field name="isbn"/>
-                        </group>
+    <field name="name">library.book.form</field>
+    <field name="model">library.book</field>
+    <field name="type">form</field>
+    <field name="arch" type="xml">
+        <form string="Book">
+            <sheet>
+                <group>
+                    <field name="name"/>
+                    <field name="author"/>
+                </group>
+
+                <notebook>
+                    <page string="Publication Details">
                         <group>
                             <field name="publication_date"/>
                             <field name="publisher_id"/>
+                            <field name="isbn"/>
                         </group>
-                    </group>
-                </sheet>
-            </form>
-        </field>
-    </record>
+                    </page>
+                    <page string="Internal Notes">
+                        <group>
+                            <field name="librarian_notes"/>
+                        </group>
+                    </page>
+                    </notebook>
+            </sheet>
+        </form>
+    </field>
+</record>
 
 </odoo>

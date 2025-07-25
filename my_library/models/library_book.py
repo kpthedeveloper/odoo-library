@@ -11,6 +11,7 @@ class LibraryBook(models.Model):
     isbn = fields.Char('ISBN', help="The International Standard Book Number")
     publication_date = fields.Date('Publication Date')
     publisher_id = fields.Many2one('res.partner', string='Publisher')
+    librarian_notes = fields.Text('Librarian Notes')
 
     # New field: Check if the book is currently available for loan
     is_available = fields.Boolean(

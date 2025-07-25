@@ -1,6 +1,7 @@
+# my_library/__manifest__.py
 {
     'name': 'My Library',
-    'version': '1.4',
+    'version': '1.5.1',
     'summary': 'Manage your book collection and library members',
     'sequence': 10,
     'description': """
@@ -9,12 +10,16 @@
     'category': 'Custom',
     'author': 'Kshitij Pandey',
     'website': 'https://www.yourwebsite.com',
-    'depends': ['base'],
+    'depends': [
+        'base',
+        'mail',
+    ],
     'data': [
         'security/ir.model.access.csv',
         'views/library_book_views.xml',
         'views/library_member_views.xml',
-        'views/library_loan_views.xml', 
+        'views/library_loan_views.xml',
+        'views/library_menu.xml', # <--- ENSURE THIS LINE IS PRESENT
     ],
     'installable': True,
     'application': True,

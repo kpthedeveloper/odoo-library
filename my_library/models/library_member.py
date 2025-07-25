@@ -1,4 +1,7 @@
-from odoo import fields, models
+# my_library/models/library_member.py
+# -*- coding: utf-8 -*-
+
+from odoo import fields, models, api # Ensure 'api' is imported as good practice, though not strictly used for this field
 
 class LibraryMember(models.Model):
     _name = 'library.member'
@@ -20,18 +23,15 @@ class LibraryMember(models.Model):
         default='bronze',
         required=True
     )
-    # You could also add a Many2many field to link books if needed later
-    # borrowed_book_ids = fields.Many2many(
-    #     'library.book',
-    #     string='Borrowed Books',
-    # )
-
-    # Optional: Add a computed field or constraint later if needed
-    # _sql_constraints = [
-    #     ('unique_email', 'unique(email)', 'Email must be unique!'),
-    # ]
+    # NEW FIELD: One2Many relationship to library.loan
+    loan_ids = fields.One2many(
+        'library.loan',         # The target model (library.loan)
+        'member_id',            # The field on the 'library.loan' model that links back to 'library.member'
+        string='Current Loans'  # Label for the field in the UI
+    )
 
     # Optional: Override name_get for better display in relational fields
+    @api.depends('name', 'email') # Add fields to depends for computed name
     def name_get(self):
         result = []
         for record in self:
